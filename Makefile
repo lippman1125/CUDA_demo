@@ -1,1 +1,15 @@
-nvcc -o matrix_multiply main.cu matrix_multiply.cu utils.cu
+TARGET=matrix_multiply
+CU_SRCS := $(wildcard *.cu)
+CU_OBJS := $(CU_SRCS:%.cu=%.o)
+
+$(CU_OBJS): $(CU_SRCS)
+CU_SRCS := $(wildcard *.cu)
+CU_OBJS := $(CU_SRCS:%.cu=%.o)
+
+$(CU_OBJS): $(CU_SRCS)
+	nvcc -c $^
+
+all: $(TARGET)
+$(TARGET): $(CU_OBJS)
+	nvcc -o $@ $^
+

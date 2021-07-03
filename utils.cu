@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <cuda_runtime.h>
 #include <sys/time.h>
+#include "utils.h"
 
 void initDevice(int devNum)
 {
@@ -41,3 +42,4 @@ void matrix_print(float *a, int m, int n)
         printf("\n");
     }
 }
+
