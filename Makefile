@@ -1,0 +1,1 @@
+nvcc -o matrix_multiply main.cu matrix_multiply.cu utils.cu
