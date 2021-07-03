@@ -31,6 +31,9 @@ int main(int argc, char**argv)
     printf("block is [%d %d]\n", b_h, b_w);
     // initialize gpu device
     initDevice(0);
+
+    // display gpu info
+    gpu_info_display();
     
     int bytes_a = m*k*sizeof(float);
     int bytes_b = k*n*sizeof(float);
