@@ -3,6 +3,7 @@
 #include "utils.h"
 
 extern __global__ void MatrixMultiply(float * mat_a, float * mat_b, float * mat_c, int m, int n, int k);
+extern __global__ void MatrixMultiplySmem(float * mat_a, float * mat_b, float * mat_c, int m, int n, int k);
 extern void MatrixMultiply_CPU_Native(float * mat_a, float * mat_b, float * mat_c, int m, int n, int k);
 extern void MatrixMultiply_CPU_OPT1(float * mat_a, float * mat_b, float * mat_c, int m, int n, int k);
 extern void MatrixMultiply_CPU_OPT2(float * mat_a, float * mat_b, float * mat_c, int m, int n, int k, int b);
@@ -57,17 +58,18 @@ int main(int argc, char**argv)
         return 0;
     }
     memset((void*)b_host, 0, bytes_b);
-    float * c_host = (float*)malloc(bytes_c*4); 
+    float * c_host = (float*)malloc(bytes_c*5);
     if (c_host == NULL) {
         printf("matrix c_host malloc fail\n");
         free(b_host);
         free(a_host);
         return 0;
     }
-    memset((void*)c_host, 0, bytes_c*4);
+    memset((void*)c_host, 0, bytes_c*5);
     float * c_host_opt1 = (float*)((char*)c_host + bytes_c);
     float * c_host_opt2 = (float*)((char*)c_host + bytes_c*2);
     float * c_from_dev  = (float*)((char*)c_host + bytes_c*3); 
+    float * c_from_dev2 = (float*)((char*)c_host + bytes_c*4);
 
     // Initialize Data
     /*
@@ -82,13 +84,18 @@ int main(int argc, char**argv)
     float *a_dev=NULL;
     float *b_dev=NULL;
     float *c_dev=NULL;
+    float *c_dev2=NULL;
     CHECK(cudaMalloc((void**)&a_dev, bytes_a));
     CHECK(cudaMalloc((void**)&b_dev, bytes_b));
     CHECK(cudaMalloc((void**)&c_dev, bytes_c));
+    CHECK(cudaMalloc((void**)&c_dev2, bytes_c));
+
 
     CHECK(cudaMemcpy(a_dev, a_host, bytes_a, cudaMemcpyHostToDevice));
     CHECK(cudaMemcpy(b_dev, b_host, bytes_b, cudaMemcpyHostToDevice));  
     CHECK(cudaMemset(c_dev, 0, bytes_c));
+    CHECK(cudaMemset(c_dev2, 0, bytes_c));
+
     // record time
     long long s_t;
     long long e_t;
@@ -137,6 +144,22 @@ int main(int argc, char**argv)
     if (is_matrix_equal2(c_host, c_from_dev, m, n)) {
         printf("GPU Execution Time elapsed %llu msec\n", e_t - s_t);
     }
+
+    printf("GPU Smem Execution...\n");
+    printf("Kernel configuration<<<(%d,%d), (%d,%d)>>>\n", grid.x, grid.y, block.x, block.y);
+    s_t = cpu_msec();
+    MatrixMultiplySmem<<<grid, block>>>(a_dev, b_dev, c_dev2, m, n, k);
+    //Print<<<grid, block>>>();
+    //cudaError_t cudaStatus = cudaGetLastError();
+    //printf("CUDA error code=%d, reason=%s", cudaStatus, cudaGetErrorString(cudaStatus));
+    CHECK(cudaDeviceSynchronize());
+    e_t = cpu_msec();
+
+    CHECK(cudaMemcpy(c_from_dev2, c_dev2, bytes_c, cudaMemcpyDeviceToHost));
+    if (is_matrix_equal2(c_from_dev, c_from_dev2, m, n)) {
+        printf("GPU Smem Execution Time elapsed %llu msec\n", e_t - s_t);
+    }
+
 
     cudaFree(a_dev);
     cudaFree(b_dev);

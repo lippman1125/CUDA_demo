@@ -18,15 +18,16 @@ __global__ void MatrixMultiply(float * mat_a, float * mat_b, float * mat_c, int 
     }
 }
 
-__global__ void matrixMutilGPU(float *mat_a, float *mat_b, float *mat_c, int m, int n, int k){
+#define BLOCKSIZE (32)
+__global__ void MatrixMultiplySmem(float *mat_a, float *mat_b, float *mat_c, int m, int n, int k){
     int xb = blockIdx.x;
     int yb = blockIdx.y;
     int x = threadIdx.x;
     int y = threadIdx.y;
-    int blockSize = 32;
+    int blockSize = BLOCKSIZE;
 
-    __shared__ float As[blockSize][blockSize];
-    __shared__ float Bs[blockSize][blockSize];
+    __shared__ float As[BLOCKSIZE][BLOCKSIZE];
+    __shared__ float Bs[BLOCKSIZE][BLOCKSIZE];
 
     //该线程负责的结果子块C，对应的A和B用于计算的起始子块
     //假设分成9个子块
