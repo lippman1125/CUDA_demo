@@ -18,6 +18,44 @@ __global__ void MatrixMultiply(float * mat_a, float * mat_b, float * mat_c, int 
     }
 }
 
+__global__ void matrixMutilGPU(float *mat_a, float *mat_b, float *mat_c, int m, int n, int k){
+    int xb = blockIdx.x;
+    int yb = blockIdx.y;
+    int x = threadIdx.x;
+    int y = threadIdx.y;
+    int blockSize = 32;
+
+    __shared__ float As[blockSize][blockSize];
+    __shared__ float Bs[blockSize][blockSize];
+
+    //该线程负责的结果子块C，对应的A和B用于计算的起始子块
+    //假设分成9个子块
+    //  A11 A12 A13    B11 B12 B13
+    //  A21 A22 A23  * B21 B22 B23 
+    //  A31 A32 A33    B31 B32 B33  ,则计算C22时这样计算：A21*B12+A22*B22+A23*B32
+    // find row    
+    float *BeginA = mat_a + yb* blockSize*k;
+    float *EndA = BeginA + k;
+    // find col
+    float *BeginB = mat_b + blockSize*xb;
+    int stepA = blockSize;
+    int stepB = blockSize*n;
+    float tsum = 0;
+    //每一个block A和B的子块首地址
+    for (; BeginA < EndA; BeginA += stepA, BeginB += stepB){
+        // 每个线程load一个元素到shared mem中
+        As[y][x] = *(BeginA + y*k + x);
+        Bs[y][x] = *(BeginB + y*n + x);
+        __syncthreads();//同步
+        for (int k = 0; k < blockSize;k++){
+            tsum = tsum + As[y][k] * Bs[k][x];
+        }
+        __syncthreads();//同步，确保该块内所有线程都完成了计算。下次循环，要重复利用共享内存。
+    }
+    //写入结果 注意坐标的计算方法
+    mat_c[yb*blockSize*n + y*n + xb*blockSize + x]=tsum;
+}
+
 void MatrixMultiply_CPU_Native(float * mat_a, float * mat_b, float * mat_c, int m, int n, int k)
 {
     // access matrix a & c in order
