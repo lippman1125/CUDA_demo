@@ -12,6 +12,24 @@ void initDevice(int devNum)
     CHECK(cudaSetDevice(dev));
 }
 
+void initialDataRand(float* ip, int size)
+{
+    time_t t;
+    srand((unsigned )time(&t));
+    for(int i=0;i<size;i++)
+    {
+        ip[i]=(float)(rand()&0xffff)/1000.0f;
+    }
+}
+
+void initialDataOne(float *ip, int size)
+{
+    for(int i=0; i<size; i++)
+    {
+        ip[i]=(float)1.0;
+    }
+}
+
 long long cpu_msec()
 {
     struct timeval tp;
@@ -32,6 +50,24 @@ int is_matrix_equal(float *a, float *b, int m , int n) {
     }
     return equal;
 }
+
+int is_matrix_equal2(float *a, float *b, int m , int n) {
+    int equal = 1;
+    int cnt = 0;
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            if (abs(a[i*n + j] - b[i*n + j])>=1.0) {
+                equal = 0;
+                printf("%f, %f\n", a[i*n+j], b[i*n+j]);
+            } else if (abs(a[i*n + j] - b[i*n + j])>1e-6 && abs(a[i*n + j] - b[i*n + j])<1.0) {
+                cnt++;
+            }
+        }
+    }
+    printf("slight diff cnt=%d\n", cnt);
+    return equal;
+}
+
 
 void matrix_print(float *a, int m, int n)
 {
